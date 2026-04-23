@@ -1,0 +1,710 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Secondsolo Picker API",
+    "description": "API documentation for Zadanie 3 - Secondsolo picker. The application uses two related database tables: firstmany and secondmany.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/zapocet/api",
+      "description": "Production path required by the assignment"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Firstmany",
+      "description": "Firstsolo endpoints"
+    },
+    {
+      "name": "Secondmany",
+      "description": "Secondsolo endpoints"
+    }
+  ],
+  "paths": {
+    "/firstmany": {
+      "get": {
+        "tags": [
+          "Firstmany"
+        ],
+        "summary": "Get all firstmany",
+        "description": "Returns all firstmany with their associated secondmany.",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Firstsolo"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "name": "Driny",
+                    "found": "2026-03-27",
+                    "secondmany": [
+                      {
+                        "id": 1,
+                        "type": "Dubak",
+                        "firstsolo_id": 1
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Firstmany"
+        ],
+        "summary": "Create a firstsolo",
+        "description": "Creates a new firstsolo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirstsoloInput"
+              },
+              "example": {
+                "name": "Driny",
+                "found": "2026-03-27"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Firstsolo created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Firstsolo"
+                },
+                "example": {
+                  "id": 1,
+                  "name": "Driny",
+                  "found": "2026-03-27",
+                  "secondmany": []
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/firstmany/{id}": {
+      "get": {
+        "tags": [
+          "Firstmany"
+        ],
+        "summary": "Get one firstsolo",
+        "description": "Returns one firstsolo with its associated secondmany.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Firstsolo"
+                },
+                "example": {
+                  "id": 1,
+                  "name": "Driny",
+                  "found": "2026-03-27",
+                  "secondmany": [
+                    {
+                      "id": 1,
+                      "type": "Dubak",
+                      "firstsolo_id": 1
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "404": {
+            "$ref": "#/components/responses/FirstsoloNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Firstmany"
+        ],
+        "summary": "Update a firstsolo",
+        "description": "Updates an existing firstsolo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirstsoloInput"
+              },
+              "example": {
+                "name": "Dobsinska ladova jaskyna",
+                "found": "2026-04-01"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Firstsolo updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Firstsolo"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/FirstsoloNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Firstmany"
+        ],
+        "summary": "Delete a firstsolo",
+        "description": "Deletes an existing firstsolo and its secondmany.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Firstsolo successfully deleted. No content is returned."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "404": {
+            "$ref": "#/components/responses/FirstsoloNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/secondmany": {
+      "get": {
+        "tags": [
+          "Secondmany"
+        ],
+        "summary": "Get all secondmany",
+        "description": "Returns all secondmany.",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Secondsolo"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "type": "Dubak",
+                    "firstsolo_id": 1
+                  }
+                ]
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Secondmany"
+        ],
+        "summary": "Create a secondsolo",
+        "description": "Creates a new secondsolo in a specified firstsolo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecondsoloInput"
+              },
+              "example": {
+                "type": "Dubak",
+                "firstsolo_id": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Secondsolo created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Secondsolo"
+                },
+                "example": {
+                  "id": 1,
+                  "type": "Dubak",
+                  "firstsolo_id": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/FirstsoloNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/secondmany/types": {
+      "get": {
+        "tags": [
+          "Secondmany"
+        ],
+        "summary": "Get all secondsolo types",
+        "description": "Returns a list of distinct secondsolo types found in all firstmany.",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "example": [
+                  "Dubak",
+                  "Kozak",
+                  "Muchotravka"
+                ]
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/secondmany/{id}": {
+      "get": {
+        "tags": [
+          "Secondmany"
+        ],
+        "summary": "Get one secondsolo",
+        "description": "Returns one secondsolo by Id.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Secondsolo"
+                },
+                "example": {
+                  "id": 1,
+                  "type": "Dubak",
+                  "firstsolo_id": 1
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "404": {
+            "$ref": "#/components/responses/SecondsoloNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Secondmany"
+        ],
+        "summary": "Update a secondsolo",
+        "description": "Updates an existing secondsolo.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecondsoloInput"
+              },
+              "example": {
+                "type": "Kozak",
+                "firstsolo_id": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Secondsolo updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Secondsolo"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "description": "Secondsolo or firstsolo not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "secondsoloNotFound": {
+                    "value": {
+                      "error": "Secondsolo not found"
+                    }
+                  },
+                  "firstsoloNotFound": {
+                    "value": {
+                      "error": "Firstsolo not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Secondmany"
+        ],
+        "summary": "Delete a secondsolo",
+        "description": "Deletes a specific secondsolo by Id.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Id"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Secondsolo successfully deleted. No content is returned."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadData"
+          },
+          "404": {
+            "$ref": "#/components/responses/SecondsoloNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Numeric resource Id.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "example": 1
+      }
+    },
+    "schemas": {
+      "Firstsolo": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "found",
+          "secondmany"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the firstsolo",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Name of the firstsolo",
+            "example": "Driny"
+          },
+          "found": {
+            "type": "string",
+            "format": "date",
+            "description": "Date when the firstsolo was found",
+            "example": "2026-03-27"
+          },
+          "secondmany": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Secondsolo"
+            }
+          }
+        }
+      },
+      "FirstsoloInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "found"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Driny"
+          },
+          "found": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-03-27"
+          }
+        }
+      },
+      "Secondsolo": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "firstsolo_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the secondsolo",
+            "example": 1
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Type of the secondsolo",
+            "example": "Dubak"
+          },
+          "firstsolo_id": {
+            "type": "integer",
+            "description": "Firstsolo id in which the secondsolo is located",
+            "example": 1
+          }
+        }
+      },
+      "SecondsoloInput": {
+        "type": "object",
+        "required": [
+          "type",
+          "firstsolo_id"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Dubak"
+          },
+          "firstsolo_id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Bad data"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadData": {
+        "description": "Bad data",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Bad data"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflict - resource with the same unique data already exists",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Resource already exists"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation error - JSON was parsed but field values are invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Validation failed"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal server error - unexpected server-side failure",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Internal server error"
+            }
+          }
+        }
+      },
+      "FirstsoloNotFound": {
+        "description": "Firstsolo not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Firstsolo not found"
+            }
+          }
+        }
+      },
+      "SecondsoloNotFound": {
+        "description": "Secondsolo not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Secondsolo not found"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,254 @@
+HTTP CODES EXAMPLES FOR THIS PROJECT
+
+200 OK
+Когда использовать:
+- GET запрос успешно вернул данные.
+- PUT запрос успешно обновил запись и вернул обновленный объект.
+
+Пример для GET:
+if ($firstsolo === null) {
+    Response::json(['error' => 'Firstsolo not found'], 404);
+}
+Response::json($firstsolo, 200);
+
+Пример для PUT:
+$updated = $this->firstsoloModel->update($id, $name, $found);
+Response::json($updated, 200);
+
+Что означает:
+- Запрос выполнен успешно.
+- Сервер вернул результат в JSON.
+
+
+201 Created
+Когда использовать:
+- POST запрос успешно создал новую запись.
+
+Пример:
+$created = $this->firstsoloModel->create($name, $found);
+Response::json($created, 201);
+
+Что означает:
+- Новый ресурс успешно создан.
+- Обычно в ответе возвращают созданный объект.
+
+
+204 No Content
+Когда использовать:
+- DELETE запрос успешно удалил запись.
+
+Пример:
+if (!$this->firstsoloModel->delete($id)) {
+    Response::json(['error' => 'Firstsolo not found'], 404);
+}
+Response::empty(204);
+
+Что означает:
+- Удаление прошло успешно.
+- Тело ответа пустое.
+
+
+400 Bad Request
+Когда использовать:
+- JSON сломан.
+- id в URL передан в неправильном формате.
+- Сервер не может корректно прочитать сам запрос.
+
+Пример для JSON:
+$data = json_decode($raw ?: '', true);
+if (!is_array($data)) {
+    Response::json(['error' => 'Bad data'], 400);
+}
+
+Пример для path id:
+if (!is_string($value) || !preg_match('/^[1-9][0-9]*$/', $value)) {
+    Response::json(['error' => 'Bad data'], 400);
+}
+
+Что означает:
+- Ошибка именно в форме запроса.
+- Сервер не может нормально обработать входные данные.
+
+
+404 Not Found
+Когда использовать:
+- Запрашиваемая запись не найдена.
+- Роут не существует.
+
+Пример для записи:
+$firstsolo = $this->firstsoloModel->getOne($id);
+if ($firstsolo === null) {
+    Response::json(['error' => 'Firstsolo not found'], 404);
+}
+
+Пример для роутера:
+Response::json(['error' => 'Not found'], 404);
+
+Что означает:
+- Такой ресурс не существует.
+- Или путь запроса не найден.
+
+
+405 Method Not Allowed
+Когда использовать:
+- URL существует, но для него нельзя использовать этот HTTP-метод.
+- Например отправили POST туда, где разрешен только GET.
+
+Пример:
+if ($pathExistsForAnotherMethod) {
+    Response::json(['error' => 'Method not allowed'], 405);
+}
+
+Что означает:
+- Путь правильный.
+- Но метод GET/POST/PUT/DELETE выбран неправильно.
+
+
+409 Conflict
+Когда использовать:
+- Такой объект уже существует.
+- Например такая же комбинация name + found уже есть в таблице.
+
+Пример:
+if ($this->firstsoloModel->existsByNameAndFound($name, $found)) {
+    Response::json(['error' => 'Firstsolo already exists'], 409);
+}
+
+Пример для secondsolo:
+if ($this->secondsoloModel->existsByTypeAndFirstsoloId($type, $firstsoloId)) {
+    Response::json(['error' => 'Secondsolo already exists'], 409);
+}
+
+Что означает:
+- Запрос сам по себе правильный.
+- Но он конфликтует с уже существующими данными.
+
+
+422 Unprocessable Entity
+Когда использовать:
+- JSON прочитался.
+- Но значения полей не прошли валидацию.
+- Например пустая строка, неверная дата, неправильный email.
+
+Пример для name:
+if (!is_string($value)) {
+    Response::json(['error' => 'Validation failed for name'], 422);
+}
+
+if (
+    $value === '' ||
+    mb_strlen($value) > 100 ||
+    !preg_match("/^[\\p{L}\\p{N}][\\p{L}\\p{N}\\s.'-]{0,99}$/u", $value)
+) {
+    Response::json(['error' => 'Validation failed for name'], 422);
+}
+
+Пример для found:
+if ($date === false || $date->format('Y-m-d') !== $value) {
+    Response::json(['error' => 'Validation failed for found'], 422);
+}
+
+Что означает:
+- Запрос по структуре нормальный.
+- Но значения внутри запроса не подходят по правилам валидации.
+
+
+500 Internal Server Error
+Когда использовать:
+- На сервере произошла непредвиденная ошибка.
+- Например исключение PHP, ошибка базы данных, ошибка выполнения кода.
+
+Пример:
+try {
+    $router->dispatch($_SERVER['REQUEST_METHOD'] ?? 'GET', $requestPath);
+} catch (Throwable) {
+    Response::json(['error' => 'Internal server error'], 500);
+}
+
+Что означает:
+- Ошибка уже не в клиенте.
+- Ошибка на стороне сервера.
+
+
+КРАТКАЯ ПАМЯТКА
+
+200 = успешно получили или обновили данные
+201 = успешно создали запись
+204 = успешно удалили без тела ответа
+400 = плохой запрос
+404 = не найдено
+405 = метод не разрешен
+409 = конфликт, дубликат
+422 = данные не прошли валидацию
+500 = внутренняя ошибка сервера
+
+
+
+1xx — информационные
+
+Эти коды редко видны в обычной работе с REST API.
+
+100 Continue — сервер получил начало запроса, можно продолжать отправку
+101 Switching Protocols — сервер переключает протокол
+102 Processing — запрос принят в обработку, но ответ еще не готов
+103 Early Hints — предварительная информация до основного ответа
+2xx — успех
+
+Это значит, что запрос выполнен успешно.
+
+200 OK — запрос выполнен успешно
+201 Created — ресурс успешно создан
+202 Accepted — запрос принят, но обработка еще не завершена
+203 Non-Authoritative Information — ответ получен, но информация может быть не от исходного сервера
+204 No Content — запрос успешный, но тело ответа пустое
+205 Reset Content — запрос успешный, клиент должен сбросить форму или состояние
+206 Partial Content — сервер вернул только часть данных
+207 Multi-Status — ответ содержит несколько статусов для разных частей запроса
+208 Already Reported — часть данных уже была указана ранее
+226 IM Used — сервер использовал преобразование данных для ответа
+3xx — перенаправление
+
+В REST API встречаются реже, но знать полезно.
+
+300 Multiple Choices — есть несколько вариантов ответа
+301 Moved Permanently — ресурс навсегда перемещен на новый адрес
+302 Found — ресурс временно доступен по другому адресу
+303 See Other — результат запроса нужно получить по другому URL через GET
+304 Not Modified — ресурс не изменился, можно использовать кэш
+305 Use Proxy — доступ через прокси
+306 (Unused) — не используется
+307 Temporary Redirect — временное перенаправление, метод запроса сохраняется
+308 Permanent Redirect — постоянное перенаправление, метод запроса сохраняется
+4xx — ошибка клиента
+
+Это значит, что проблема в запросе со стороны клиента.
+
+400 Bad Request — неверный запрос
+401 Unauthorized — нужна авторизация
+402 Payment Required — требуется оплата
+403 Forbidden — доступ запрещен
+404 Not Found — ресурс не найден
+405 Method Not Allowed — этот HTTP-метод запрещен для данного URL
+406 Not Acceptable — сервер не может вернуть ответ в нужном формате
+407 Proxy Authentication Required — нужна аутентификация через прокси
+408 Request Timeout — клиент слишком долго отправлял запрос
+409 Conflict — конфликт данных, например ресурс уже существует
+410 Gone — ресурс удален и больше недоступен
+411 Length Required — сервер требует заголовок Content-Length
+412 Precondition Failed — условие в запросе не выполнено
+413 Payload Too Large — тело запроса слишком большое
+414 URI Too Long — слишком длинный URL
+415 Unsupported Media Type — неподдерживаемый тип данных, например неверный Content-Type
+416 Range Not Satisfiable — запрошенный диапазон данных недоступен
+417 Expectation Failed — сервер не смог выполнить условие из заголовка Expect
+418 I'm a teapot — шуточный код: «я чайник»
+421 Misdirected Request — запрос отправлен не тому серверу
+422 Unprocessable Entity — сервер понял запрос, но не может обработать его из-за ошибок в данных
+423 Locked — ресурс заблокирован
+424 Failed Dependency — операция не выполнена из-за зависимости от другой неуспешной операции
+425 Too Early — слишком рано обрабатывать запрос
+426 Upgrade Required — нужно обновить протокол
+428 Precondition Required — сервер требует предварительное условие
+429 Too Many Requests — слишком много запросов за короткое время
+431 Request Header Fields Too Large — заголовки запроса слишком большие
+451 Unavailable For Legal Reasons — ресурс недоступен по юридическим причинам
