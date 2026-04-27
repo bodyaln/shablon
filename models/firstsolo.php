@@ -9,29 +9,59 @@ final class Firstsolo
     public function getAll(): array
     {
         $stmt = $this->pdo->query(
-            'SELECT c.id, c.name, c.found, m.id AS secondsolo_id, m.type AS secondsolo_type, m.firstsolo_id
-             FROM firstmany c
-             LEFT JOIN secondmany m ON m.firstsolo_id = c.id
-             ORDER BY c.id ASC, m.id ASC'
+            'SELECT f.id, f.name, f.found
+             FROM firstmany f
+             ORDER BY f.id ASC'
         );
 
-        return $this->mapRowsToFirstmany($stmt->fetchAll());
+        $firstmany = $stmt->fetchAll();
+
+        foreach ($firstmany as &$firstsolo) {
+            $stmt = $this->pdo->prepare(
+                'SELECT s.id, s.type, s.firstsolo_id
+                 FROM secondmany s
+                 WHERE s.firstsolo_id = :firstsolo_id
+                 ORDER BY s.id ASC'
+            );
+
+            $stmt->execute([
+                'firstsolo_id' => $firstsolo['id'],
+            ]);
+
+            $firstsolo['secondmany'] = $stmt->fetchAll();
+        }
+        unset($firstsolo);
+
+        return $firstmany;
     }
 
     public function getOne(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT c.id, c.name, c.found, m.id AS secondsolo_id, m.type AS secondsolo_type, m.firstsolo_id
-             FROM firstmany c
-             LEFT JOIN secondmany m ON m.firstsolo_id = c.id
-             WHERE c.id = :id
-             ORDER BY m.id ASC'
+            'SELECT f.id, f.name, f.found
+             FROM firstmany f
+             WHERE f.id = :id'
         );
         $stmt->execute(['id' => $id]);
+        $firstsolo = $stmt->fetch();
 
-        $firstmany = $this->mapRowsToFirstmany($stmt->fetchAll());
+        if ($firstsolo === false) {
+            return null;
+        }
 
-        return $firstmany[0] ?? null;
+        $stmt = $this->pdo->prepare(
+            'SELECT s.id, s.type, s.firstsolo_id
+             FROM secondmany s
+             WHERE s.firstsolo_id = :firstsolo_id
+             ORDER BY s.id ASC'
+        );
+        $stmt->execute([
+            'firstsolo_id' => $firstsolo['id'],
+        ]);
+
+        $firstsolo['secondmany'] = $stmt->fetchAll();
+
+        return $firstsolo;
     }
 
     public function create(string $name, string $found): array
@@ -76,56 +106,28 @@ final class Firstsolo
 
     public function exists(int $id): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM firstmany WHERE id = :id');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM firstmany f WHERE f.id = :id');
         $stmt->execute(['id' => $id]);
         return (bool) $stmt->fetchColumn();
     }
 
     public function existsByNameAndFound(string $name, string $found, ?int $excludeId = null): bool
     {
-        $sql = 'SELECT 1 FROM firstmany WHERE name = :name AND found = :found';
-        $params = [
+        $stmt = $this->pdo->prepare(
+            'SELECT 1
+         FROM firstmany f
+         WHERE f.name = :name
+           AND f.found = :found
+           AND (:exclude_id IS NULL OR f.id <> :exclude_id)'
+        );
+
+        $stmt->execute([
             'name' => $name,
             'found' => $found,
-        ];
-
-        if ($excludeId !== null) {
-            $sql .= ' AND id <> :exclude_id';
-            $params['exclude_id'] = $excludeId;
-        }
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+            'exclude_id' => $excludeId,
+        ]);
 
         return (bool) $stmt->fetchColumn();
-    }
-
-    private function mapRowsToFirstmany(array $rows): array
-    {
-        $firstmany = [];
-
-        foreach ($rows as $row) {
-            $id = (int) $row['id'];
-
-            if (!isset($firstmany[$id])) {
-                $firstmany[$id] = [
-                    'id' => $id,
-                    'name' => $row['name'],
-                    'found' => $row['found'],
-                    'secondmany' => [],
-                ];
-            }
-
-            if ($row['secondsolo_id'] !== null) {
-                $firstmany[$id]['secondmany'][] = [
-                    'id' => (int) $row['secondsolo_id'],
-                    'type' => $row['secondsolo_type'],
-                    'firstsolo_id' => (int) $row['firstsolo_id'],
-                ];
-            }
-        }
-
-        return array_values($firstmany);
     }
 }
 
@@ -133,35 +135,35 @@ final class Firstsolo
 SQL QUERY EXAMPLES FOR THIS MODEL:
 
 1. SELECT all records from firstmany
-   SELECT id, name, found FROM firstmany ORDER BY id ASC;
+   SELECT f.id, f.name, f.found FROM firstmany f ORDER BY f.id ASC;
    <<SELECT выбирает данные; id, name, found - нужные колонки; FROM firstmany - из какой таблицы брать; ORDER BY id ASC - сортировка по id от меньшего к большему.>>
 
 2. SELECT one record by id
-   SELECT id, name, found FROM firstmany WHERE id = :id;
+   SELECT f.id, f.name, f.found FROM firstmany f WHERE f.id = :id;
    <<WHERE id = :id фильтрует одну запись по id; :id - placeholder для безопасной подстановки значения через PDO prepare/execute.>>
 
 3. SELECT only names
-   SELECT name FROM firstmany ORDER BY name ASC;
+   SELECT f.name FROM firstmany f ORDER BY f.name ASC;
    <<Можно выбрать не все колонки, а только name; ORDER BY name ASC сортирует строки по имени в алфавитном порядке.>>
 
 4. SELECT records found after a date
-   SELECT id, name, found FROM firstmany WHERE found >= :date ORDER BY found ASC;
+   SELECT f.id, f.name, f.found FROM firstmany f WHERE f.found >= :date ORDER BY f.found ASC;
    <<WHERE found >= :date выбирает записи, у которых дата found больше или равна переданной дате.>>
 
 5. SELECT records between two dates
-   SELECT id, name, found FROM firstmany WHERE found BETWEEN :date_from AND :date_to;
+   SELECT f.id, f.name, f.found FROM firstmany f WHERE f.found BETWEEN :date_from AND :date_to;
    <<BETWEEN выбирает значения в диапазоне; здесь даты от :date_from до :date_to включительно.>>
 
 6. Search by part of name
-   SELECT id, name, found FROM firstmany WHERE name LIKE :search ORDER BY name ASC;
+   SELECT f.id, f.name, f.found FROM firstmany f WHERE f.name LIKE :search ORDER BY f.name ASC;
    <<LIKE ищет по шаблону; в PHP можно передать ['search' => '%' . $search . '%'], чтобы найти часть строки.>>
 
 7. Search by name prefix
-   SELECT id, name, found FROM firstmany WHERE name LIKE :prefix ORDER BY name ASC;
+   SELECT f.id, f.name, f.found FROM firstmany f WHERE f.name LIKE :prefix ORDER BY f.name ASC;
    <<Для поиска начала строки можно передать ['prefix' => $prefix . '%']; например 'Bra%' найдет имена, которые начинаются на Bra.>>
 
 8. Count all firstmany records
-   SELECT COUNT(*) AS total FROM firstmany;
+   SELECT COUNT(*) AS total FROM firstmany f;
    <<COUNT(*) считает количество строк; AS total задает имя результата total.>>
 
 9. Count related secondmany records for every firstsolo
@@ -213,63 +215,63 @@ SQL QUERY EXAMPLES FOR THIS MODEL:
     <<DELETE удаляет строку; WHERE id = :id ограничивает удаление одной записью; связанные secondmany удалятся автоматически из-за ON DELETE CASCADE.>>
 
 18. Check if firstmany exists
-    SELECT 1 FROM firstmany WHERE id = :id;
+    SELECT 1 FROM firstmany f WHERE f.id = :id;
     <<SELECT 1 используется для быстрой проверки существования записи; данные самой строки не загружаются.>>
 
 19. Limit results for pagination
-    SELECT id, name, found FROM firstmany ORDER BY id ASC LIMIT :limit OFFSET :offset;
+    SELECT f.id, f.name, f.found FROM firstmany f ORDER BY f.id ASC LIMIT :limit OFFSET :offset;
     <<LIMIT задает сколько строк вернуть; OFFSET задает сколько строк пропустить, например для страниц.>>
 
 20. Get latest records by date
-    SELECT id, name, found FROM firstmany ORDER BY found DESC, id DESC LIMIT 10;
+    SELECT f.id, f.name, f.found FROM firstmany f ORDER BY f.found DESC, f.id DESC LIMIT 10;
     <<ORDER BY found DESC сортирует от новой даты к старой; LIMIT 10 вернет только 10 последних записей.>>
 
 21. Use DATE value
-    SELECT id, name, found FROM firstmany WHERE found = :found;
+    SELECT f.id, f.name, f.found FROM firstmany f WHERE f.found = :found;
     <<DATE сравнивается как строка формата YYYY-MM-DD, но значение должно быть валидной датой.>>
 
 22. Use TIMESTAMP fields if table has created_at
-    SELECT id, name, created_at FROM firstmany WHERE created_at >= :created_at;
+    SELECT f.id, f.name, f.created_at FROM firstmany f WHERE f.created_at >= :created_at;
     <<TIMESTAMP хранит дату и время; запрос выбирает записи, созданные после указанного момента.>>
 
 23. Use DATETIME fields if table has event_datetime
-    SELECT id, name, event_datetime FROM firstmany WHERE event_datetime BETWEEN :start AND :end;
+    SELECT f.id, f.name, f.event_datetime FROM firstmany f WHERE f.event_datetime BETWEEN :start AND :end;
     <<DATETIME удобно фильтровать по диапазону даты и времени.>>
 
 24. Use TIME field if table has start_time
-    SELECT id, name, start_time FROM firstmany WHERE start_time >= :time;
+    SELECT f.id, f.name, f.start_time FROM firstmany f WHERE f.start_time >= :time;
     <<TIME хранит только время; запрос может выбрать записи после конкретного времени, например после 09:00:00.>>
 
 25. Use ENUM field if table has status
-    SELECT id, name, status FROM firstmany WHERE status = :status;
+    SELECT f.id, f.name, f.status FROM firstmany f WHERE f.status = :status;
     <<ENUM сравнивается как строка, но в БД разрешены только заранее заданные значения, например new, active или blocked.>>
 
 26. Use BOOLEAN field if table has is_active
-    SELECT id, name, is_active FROM firstmany WHERE is_active = TRUE;
+    SELECT f.id, f.name, f.is_active FROM firstmany f WHERE f.is_active = TRUE;
     <<BOOLEAN в MySQL обычно хранится как 1/0; TRUE выбирает активные записи.>>
 
 27. Use DECIMAL field if table has price
-    SELECT id, name, price FROM firstmany WHERE price BETWEEN :min_price AND :max_price;
+    SELECT f.id, f.name, f.price FROM firstmany f WHERE f.price BETWEEN :min_price AND :max_price;
     <<DECIMAL подходит для денег; BETWEEN выбирает цены в заданном диапазоне.>>
 
 28. Use FLOAT field if table has rating
-    SELECT id, name, rating FROM firstmany WHERE rating >= :rating ORDER BY rating DESC;
+    SELECT f.id, f.name, f.rating FROM firstmany f WHERE f.rating >= :rating ORDER BY f.rating DESC;
     <<FLOAT подходит для примерных дробных чисел; запрос выбирает записи с рейтингом выше заданного.>>
 
 29. Use email field
-    SELECT id, name, email FROM firstmany WHERE email = :email;
+    SELECT f.id, f.name, f.email FROM firstmany f WHERE f.email = :email;
     <<Email обычно ищут точным сравнением; если поле UNIQUE, одинаковых email быть не должно.>>
 
 30. Use UUID field
-    SELECT id, uuid, name FROM firstmany WHERE uuid = :uuid;
+    SELECT f.id, f.uuid, f.name FROM firstmany f WHERE f.uuid = :uuid;
     <<UUID обычно хранится как CHAR(36); по нему можно искать запись как по внешнему публичному идентификатору.>>
 
 31. Use JSON field
-    SELECT id, name, data_json FROM firstmany WHERE JSON_EXTRACT(data_json, '$.city') = :city;
+    SELECT f.id, f.name, f.data_json FROM firstmany f WHERE JSON_EXTRACT(f.data_json, '$.city') = :city;
     <<JSON_EXTRACT достает значение из JSON по пути; '$.city' означает поле city внутри JSON-объекта.>>
 
 32. Use BLOB field
-    SELECT id, name, image FROM firstmany WHERE id = :id;
+    SELECT f.id, f.name, f.image FROM firstmany f WHERE f.id = :id;
     <<BLOB хранит бинарные данные; обычно лучше хранить файл в папке, а в БД сохранять путь к файлу.>>
 
 33. Add foreign key value

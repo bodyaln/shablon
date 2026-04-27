@@ -1,9 +1,8 @@
 <?php
 
 declare(strict_types=1);
-
-require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/Response.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/Router.php';
 require_once __DIR__ . '/models/firstsolo.php';
 require_once __DIR__ . '/models/secondsolo.php';
@@ -23,6 +22,7 @@ try {
     $router->add('GET', '/zapocet/api/firstmany/{id}', fn(array $params) => $firstsoloController->getOne($params));
     $router->add('POST', '/zapocet/api/firstmany', fn() => $firstsoloController->post());
     $router->add('PUT', '/zapocet/api/firstmany/{id}', fn(array $params) => $firstsoloController->put($params));
+    $router->add('PATCH', '/zapocet/api/firstmany/{id}', fn(array $params) => $firstsoloController->patch($params));
     $router->add('DELETE', '/zapocet/api/firstmany/{id}', fn(array $params) => $firstsoloController->delete($params));
 
     $router->add('GET', '/zapocet/api/secondmany', fn() => $secondsoloController->getAll());
@@ -30,6 +30,7 @@ try {
     $router->add('GET', '/zapocet/api/secondmany/{id}', fn(array $params) => $secondsoloController->getOne($params));
     $router->add('POST', '/zapocet/api/secondmany', fn() => $secondsoloController->post());
     $router->add('PUT', '/zapocet/api/secondmany/{id}', fn(array $params) => $secondsoloController->put($params));
+    $router->add('PATCH', '/zapocet/api/secondmany/{id}', fn(array $params) => $secondsoloController->patch($params));
     $router->add('DELETE', '/zapocet/api/secondmany/{id}', fn(array $params) => $secondsoloController->delete($params));
 
     $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';

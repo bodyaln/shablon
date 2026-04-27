@@ -4,40 +4,59 @@ declare(strict_types=1);
 
 final class Secondsolo
 {
-    public function __construct(private PDO $pdo)
-    {
-    }
+    public function __construct(private PDO $pdo) {}
 
     public function getAll(): array
     {
         $stmt = $this->pdo->query(
-            'SELECT id, type, firstsolo_id FROM secondmany ORDER BY id ASC'
+            'SELECT s.id, s.type, s.firstsolo_id
+             FROM secondmany s
+             ORDER BY s.id ASC'
         );
 
-        return $this->mapRowsToSecondmany($stmt->fetchAll());
+        $secondmany = $stmt->fetchAll();
+
+        foreach ($secondmany as &$secondsolo) {
+            $secondsolo['id'] = (int) $secondsolo['id'];
+            $secondsolo['firstsolo_id'] = (int) $secondsolo['firstsolo_id'];
+        }
+        unset($secondsolo);
+
+        return $secondmany;
     }
 
     public function getOne(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, type, firstsolo_id FROM secondmany WHERE id = :id'
+            'SELECT s.id, s.type, s.firstsolo_id
+             FROM secondmany s
+             WHERE s.id = :id'
         );
         $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch();
+        $secondsolo = $stmt->fetch();
 
-        if ($row === false) {
+        if ($secondsolo === false) {
             return null;
         }
 
-        return $this->mapRowToSecondsolo($row);
+        $secondsolo['id'] = (int) $secondsolo['id'];
+        $secondsolo['firstsolo_id'] = (int) $secondsolo['firstsolo_id'];
+
+        return $secondsolo;
     }
 
     public function distinctTypes(): array
     {
-        $stmt = $this->pdo->query('SELECT DISTINCT type FROM secondmany ORDER BY type ASC');
+        $stmt = $this->pdo->query(
+            'SELECT DISTINCT s.type
+             FROM secondmany s
+             ORDER BY s.type ASC'
+        );
+
+        $rows = $stmt->fetchAll();
         $types = [];
 
-        foreach ($stmt->fetchAll() as $row) {
+        foreach ($rows as $row) {
             $types[] = $row['type'];
         }
 
@@ -85,40 +104,20 @@ final class Secondsolo
 
     public function existsByTypeAndFirstsoloId(string $type, int $firstsoloId, ?int $excludeId = null): bool
     {
-        $sql = 'SELECT 1 FROM secondmany WHERE type = :type AND firstsolo_id = :firstsolo_id';
-        $params = [
+        $stmt = $this->pdo->prepare(
+            'SELECT 1
+             FROM secondmany s
+             WHERE s.type = :type
+               AND s.firstsolo_id = :firstsolo_id
+               AND (:exclude_id IS NULL OR s.id <> :exclude_id)'
+        );
+
+        $stmt->execute([
             'type' => $type,
             'firstsolo_id' => $firstsoloId,
-        ];
-
-        if ($excludeId !== null) {
-            $sql .= ' AND id <> :exclude_id';
-            $params['exclude_id'] = $excludeId;
-        }
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+            'exclude_id' => $excludeId,
+        ]);
 
         return (bool) $stmt->fetchColumn();
-    }
-
-    private function mapRowsToSecondmany(array $rows): array
-    {
-        $secondmany = [];
-
-        foreach ($rows as $row) {
-            $secondmany[] = $this->mapRowToSecondsolo($row);
-        }
-
-        return $secondmany;
-    }
-
-    private function mapRowToSecondsolo(array $row): array
-    {
-        return [
-            'id' => (int) $row['id'],
-            'type' => $row['type'],
-            'firstsolo_id' => (int) $row['firstsolo_id'],
-        ];
     }
 }
